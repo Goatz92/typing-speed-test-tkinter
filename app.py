@@ -17,7 +17,7 @@ class TypingSpeedTest:
             "Life is like riding a bicycle. To keep your balance, you must keep moving.",
             "Success is not final, failure is not fatal: it is the courage to continue that counts."
         ]
-        self.current_text = ""
+        self.current_text = random.choice(self.sample_texts)   # choose text up-front
         self.start_time = None
         self.is_test_active = False
 
@@ -36,7 +36,7 @@ class TypingSpeedTest:
         # Text to type
         self.text_to_type = tk.Label(
             self.root,
-            text="Press 'Start Test' to begin",
+            text=self.current_text,               # show chosen text immediately
             wraplength=700,
             font=("Helvetica", 14),
             bg="#f0f0f0",
@@ -44,15 +44,19 @@ class TypingSpeedTest:
         )
         self.text_to_type.pack(pady=20, padx=20, fill=tk.X)
 
-        # Text input area
+        # Text input area - allow typing immediately
         self.text_input = tk.Text(
             self.root,
             height=5,
             font=("Helvetica", 12),
-            state='disabled',
+            state='normal',                       # enabled so user can type without pressing Start
             wrap=tk.WORD
         )
         self.text_input.pack(pady=20, padx=20, fill=tk.X)
+
+        # Bind: start test on first printable keypress, update stats on key release
+        self.text_input.bind('<KeyPress>', self.start_on_first_key)
+        self.text_input.bind('<KeyRelease>', self.check_progress)
 
         # Stats
         stats_frame = ttk.Frame(self.root)
@@ -82,10 +86,39 @@ class TypingSpeedTest:
         # Start button
         self.start_button = ttk.Button(
             self.root,
-            text="Start Test",
-            command=self.start_test
+            text="New Text",
+            command=self.new_text
         )
         self.start_button.pack(pady=20)
+
+    def start_on_first_key(self, event):
+        # Start the timer on the first printable keypress
+        if self.is_test_active:
+            return
+        # ignore pure modifier keys / non-printable keys
+        if not getattr(event, "char", "") or event.keysym in (
+            "Shift_L", "Shift_R", "Control_L", "Control_R", "Alt_L", "Alt_R", "Caps_Lock", "Tab"
+        ):
+            return
+        self.is_test_active = True
+        self.start_time = time.time()
+        self.start_button.config(text="New Text")
+        self.update_timer()
+
+    def new_text(self):
+        # reset and pick a new text
+        self.is_test_active = False
+        self.start_time = None
+        self.current_text = random.choice(self.sample_texts)
+        self.text_to_type.config(text=self.current_text)
+        self.text_input.config(state='normal')
+        self.text_input.delete('1.0', tk.END)
+        self.wpm_label.config(text="WPM: 0")
+        self.accuracy_label.config(text="Accuracy: 0%")
+        self.time_label.config(text="Time: 0s")
+        # re-bind handlers (safe to call multiple times)
+        self.text_input.bind('<KeyPress>', self.start_on_first_key)
+        self.text_input.bind('<KeyRelease>', self.check_progress)
 
     def start_test(self):
         # Reset and start new test
@@ -105,6 +138,7 @@ class TypingSpeedTest:
         self.update_timer()
         
         # Bind the key release event
+        self.text_input.bind('<KeyPress>', self.start_on_first_key)
         self.text_input.bind('<KeyRelease>', self.check_progress)
     
     def update_timer(self):
