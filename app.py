@@ -88,7 +88,66 @@ class TypingSpeedTest:
         self.start_button.pack(pady=20)
 
     def start_test(self):
-        pass
+        # Reset and start new test
+        self.is_test_active = True
+        self.current_text = random.choice(self.sample_texts)
+        self.text_to_type.config(text=self.current_text)
+        self.text_input.config(state='normal')
+        self.text_input.delete('1.0', tk.END)
+        self.start_time = time.time()
+        
+        # Reset stats
+        self.wpm_label.config(text="WPM: 0")
+        self.accuracy_label.config(text="Accuracy: 0%")
+        self.time_label.config(text="Time: 0s")
+        
+        # Start timer
+        self.update_timer()
+        
+        # Bind the key release event
+        self.text_input.bind('<KeyRelease>', self.check_progress)
+    
+    def update_timer(self):
+        if self.is_test_active and self.start_time:
+            elapsed_time = int(time.time() - self.start_time)
+            self.time_label.config(text=f"Time: {elapsed_time}s")
+            self.root.after(1000, self.update_timer)
+    
+    def check_progress(self, event=None):
+        if not self.is_test_active:
+            return
+            
+        # Get current input
+        current_input = self.text_input.get('1.0', 'end-1c')
+        
+        # Calculate current statistics
+        self.calculate_stats(current_input)
+        
+        # Check if test is complete
+        if current_input == self.current_text:
+            self.finish_test()
+    
+    def calculate_stats(self, current_input):
+        # Calculate accuracy
+        correct_chars = sum(1 for i, c in enumerate(current_input) 
+                          if i < len(self.current_text) and c == self.current_text[i])
+        accuracy = (correct_chars / len(self.current_text)) * 100 if self.current_text else 0
+        
+        # Calculate WPM (time in minutes)
+        elapsed_time = time.time() - self.start_time
+        minutes = elapsed_time / 60
+        word_count = len(current_input.split()) if current_input else 0
+        wpm = int(word_count / minutes) if minutes > 0 else 0
+        
+        # Update labels
+        self.wpm_label.config(text=f"WPM: {wpm}")
+        self.accuracy_label.config(text=f"Accuracy: {accuracy:.1f}%")
+    
+    def finish_test(self):
+        self.is_test_active = False
+        self.text_input.config(state='disabled')
+        self.text_input.unbind('<KeyRelease>')
+        self.start_button.config(text="Try Again")
 
     def run(self):
         self.root.mainloop()
