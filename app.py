@@ -29,6 +29,15 @@ class TypingSpeedTest:
         self.create_widgets()
 
     def create_widgets(self):
+        """Create and configure all UI elements for the application.
+        
+        Creates:
+        - Instruction label
+        - Text display area
+        - Text input area
+        - Statistics frame (WPM, accuracy, time)
+        - New Text button
+        """
         instructions = "Type the text below as fast and accurately as you can!"
         self.instruction_label = tk.Label(
             self.root,
@@ -96,6 +105,11 @@ class TypingSpeedTest:
         self.start_button.pack(pady=20)
 
     def fetch_new_texts(self):
+        """Fetch new text prompts from Reddit's WritingPrompts subreddit.
+        
+        Makes an API request to Reddit to get top weekly writing prompts.
+        Falls back to default texts if the request fails.
+        """
         headers = {'User-Agent': 'TypingSpeedTest/1.0'}
         url = 'https://www.reddit.com/r/WritingPrompts/top.json?limit=5&t=week'
         try:
@@ -107,6 +121,14 @@ class TypingSpeedTest:
             print(f"Error fetching from Reddit: {e}")
 
     def start_on_first_key(self, event):
+        """Start the typing test when the first valid key is pressed.
+        
+        Args:
+            event: Tkinter key event containing key information
+            
+        Ignores modifier keys (Shift, Control, Alt) and non-printable characters.
+        Starts the timer and updates the UI when the first valid key is pressed.
+        """
         # Start the timer on the first printable keypress
         if self.is_test_active:
             return
@@ -121,6 +143,13 @@ class TypingSpeedTest:
         self.update_timer()
 
     def new_text(self):
+        """Reset the test and load a new random text prompt.
+        
+        - Fetches new texts from Reddit
+        - Resets all statistics and timer
+        - Clears input area
+        - Selects and displays new random text
+        """
         # reset and pick a new text
         self.fetch_new_texts()
         self.is_test_active = False
@@ -137,6 +166,14 @@ class TypingSpeedTest:
         self.text_input.bind('<KeyRelease>', self.check_progress)
 
     def start_test(self):
+        """Initialize a new typing test.
+        
+        - Activates the test
+        - Sets up a new random text
+        - Resets all statistics
+        - Starts the timer
+        - Binds key event handlers
+        """
         # Reset and start new test
         self.is_test_active = True
         self.current_text = random.choice(self.sample_texts)
@@ -158,12 +195,26 @@ class TypingSpeedTest:
         self.text_input.bind('<KeyRelease>', self.check_progress)
     
     def update_timer(self):
+        """Update the elapsed time display every second.
+        
+        Recursively schedules itself every 1000ms while test is active.
+        Updates the time label with elapsed seconds.
+        """
         if self.is_test_active and self.start_time:
             elapsed_time = int(time.time() - self.start_time)
             self.time_label.config(text=f"Time: {elapsed_time}s")
             self.root.after(1000, self.update_timer)
     
     def check_progress(self, event=None):
+        """Check typing progress after each keypress.
+        
+        Args:
+            event: Optional Tkinter key event
+            
+        - Calculates current statistics
+        - Updates display
+        - Checks if test is complete
+        """
         if not self.is_test_active:
             return
             
@@ -178,6 +229,16 @@ class TypingSpeedTest:
             self.finish_test()
     
     def calculate_stats(self, current_input):
+        """Calculate and update typing statistics.
+        
+        Args:
+            current_input: String containing current user input
+            
+        Calculates and displays:
+        - Words per minute (WPM)
+        - Accuracy percentage
+        - Updates statistics labels
+        """
         # Calculate accuracy
         correct_chars = sum(1 for i, c in enumerate(current_input) 
                           if i < len(self.current_text) and c == self.current_text[i])
@@ -194,6 +255,13 @@ class TypingSpeedTest:
         self.accuracy_label.config(text=f"Accuracy: {accuracy:.1f}%")
     
     def finish_test(self):
+        """Handle test completion.
+        
+        - Stops the test
+        - Disables input
+        - Removes key bindings
+        - Updates button text
+        """
         self.is_test_active = False
         self.text_input.config(state='disabled')
         self.text_input.unbind('<KeyRelease>')
