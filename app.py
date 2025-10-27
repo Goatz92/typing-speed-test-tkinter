@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import time
 import random
+import requests
 
 class TypingSpeedTest:
     def __init__(self):
@@ -11,12 +12,15 @@ class TypingSpeedTest:
         self.root.geometry("800x600")
 
         # Initialize variable
+        # Fallback text
         self.sample_texts = [
             "The quick brown fox jumps over the lazy dog.",
             "Programming is the art of telling another human what one wants the computer to do.",
             "Life is like riding a bicycle. To keep your balance, you must keep moving.",
             "Success is not final, failure is not fatal: it is the courage to continue that counts."
         ]
+        self.fetch_new_texts() # Get text online when starting
+        self.current_text = random.choice(self.sample_texts)
         self.current_text = random.choice(self.sample_texts)   # choose text up-front
         self.start_time = None
         self.is_test_active = False
@@ -91,6 +95,17 @@ class TypingSpeedTest:
         )
         self.start_button.pack(pady=20)
 
+    def fetch_new_texts(self):
+        headers = {'User-Agent': 'TypingSpeedTest/1.0'}
+        url = 'https://www.reddit.com/r/WritingPrompts/top.json?limit=5&t=week'
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                posts = response.json()['data']['children']
+                self.sample_texts = [post['data']['title'] for post in posts]
+        except Exception as e:
+            print(f"Error fetching from Reddit: {e}")
+
     def start_on_first_key(self, event):
         # Start the timer on the first printable keypress
         if self.is_test_active:
@@ -107,6 +122,7 @@ class TypingSpeedTest:
 
     def new_text(self):
         # reset and pick a new text
+        self.fetch_new_texts()
         self.is_test_active = False
         self.start_time = None
         self.current_text = random.choice(self.sample_texts)
